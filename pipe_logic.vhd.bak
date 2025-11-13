@@ -1,0 +1,87 @@
+LIBRARY ieee;
+USE ieee.std_logic_1164.all;
+USE ieee.numeric_std.all;
+
+ENTITY pipe_logic IS
+    PORT (
+        i_clk         : IN  STD_LOGIC; -- Clock principal (ex: 25 MHz vga_clk)
+        i_reset       : IN  STD_LOGIC; -- Reset (ativo-alto)
+        i_game_tick   : IN  STD_LOGIC; -- Pulso de 'tick' (ex: 60 Hz)
+        o_pipe_x      : OUT STD_LOGIC_VECTOR(9 DOWNTO 0); -- Posição X do cano
+        o_pipe_gap_y  : OUT STD_LOGIC_VECTOR(9 DOWNTO 0)  -- Posição Y da abertura
+    );
+END pipe_logic;
+
+ARCHITECTURE rtl OF pipe_logic IS
+
+    -- --- Constantes do Cano ---
+    -- Velocidade que o cano se move (pixels por 'tick')
+    CONSTANT C_PIPE_MOVE_SPEED : INTEGER := 3;
+    -- Posição X onde o cano reinicia (fora da tela, à direita)
+    CONSTANT C_PIPE_START_X    : INTEGER := 640;
+    -- Posição X onde o cano "morre" (fora da tela, à esquerda)
+    -- (Deve ser -largura_do_cano. Assumindo 60px de largura)
+    CONSTANT C_PIPE_END_X      : INTEGER := -60;
+    -- Limite mínimo da altura da abertura (para não ser impossível)
+    CONSTANT C_GAP_Y_MIN       : INTEGER := 100;
+    -- Limite máximo da altura da abertura
+    CONSTANT C_GAP_Y_MAX       : INTEGER := 380; -- (480 - 100)
+    
+    -- Sinais internos (registradores)
+    -- O 'range' precisa permitir valores negativos
+    SIGNAL r_pipe_x_pos   : INTEGER RANGE C_PIPE_END_X TO C_PIPE_START_X := C_PIPE_START_X;
+    SIGNAL r_pipe_gap_pos : INTEGER RANGE C_GAP_Y_MIN TO C_GAP_Y_MAX := 240;
+    
+    -- Gerador de números pseudo-aleatórios (LFSR) para a altura da abertura
+    SIGNAL r_lfsr         : STD_LOGIC_VECTOR(7 DOWNTO 0) := "10101010";
+
+BEGIN
+
+    -- Processo síncrono que controla os canos
+    PROCESS (i_clk, i_reset)
+    BEGIN
+        IF (i_reset = '1') THEN
+            -- No reset, coloca o cano na posição inicial
+            r_pipe_x_pos   <= C_PIPE_START_X;
+            r_pipe_gap_pos <= 240;
+            r_lfsr         <= "10101010";
+            
+        ELSIF (rising_edge(i_clk)) THEN
+        
+            -- A lógica do jogo SÓ é executada UMA VEZ por 'tick' (60x por segundo)
+            IF (i_game_tick = '1') THEN
+            
+                -- O cano já saiu da tela pela esquerda?
+                IF (r_pipe_x_pos < C_PIPE_END_X) THEN
+                    -- Sim: Reinicia o cano na direita
+                    r_pipe_x_pos <= C_PIPE_START_X;
+                    
+                    -- E calcula uma nova altura "aleatória" para a abertura
+                    -- Atualiza o LFSR
+                    r_lfsr <= (r_lfsr(6 DOWNTO 0) & (r_lfsr(7) XOR r_lfsr(5) XOR r_lfsr(4) XOR r_lfsr(3)));
+                    
+                    -- Converte o valor do LFSR para uma posição Y dentro dos limites
+                    VARIABLE v_new_gap_y : INTEGER;
+                    v_new_gap_y := C_GAP_Y_MIN + to_integer(unsigned(r_lfsr));
+                    
+                    IF (v_new_gap_y > C_GAP_Y_MAX) THEN
+                        r_pipe_gap_pos <= C_GAP_Y_MAX;
+                    ELSE
+                        r_pipe_gap_pos <= v_new_gap_y;
+                    END IF;
+                    
+                ELSE
+                    -- Não: Continua movendo o cano para a esquerda
+                    r_pipe_x_pos <= r_pipe_x_pos - C_PIPE_MOVE_SPEED; 
+                END IF;
+                
+            END IF; -- Fim do 'if (i_game_tick = '1')'
+            
+        END IF; -- Fim do 'if (rising_edge(i_clk))'
+    END PROCESS;
+
+    -- Saídas contínuas para o módulo de desenho
+    o_pipe_x <= std_logic_vector(to_unsigned(r_pipe_x_pos, 10));
+    o_pipe_gap_y <= std_logic_vector(to_unsigned(r_pipe_gap_pos, 10));
+    
+END rtl;

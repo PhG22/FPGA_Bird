@@ -1,0 +1,16 @@
+Analysis & Synthesis Status : Successful - Thu Nov 13 17:20:22 2025
+Quartus Prime Version : 18.1.0 Build 625 09/12/2018 SJ Lite Edition
+Revision Name : FPGA_Bird
+Top-level Entity Name : FPGA_Bird
+Family : MAX 10
+Total logic elements : 846
+    Total combinational functions : 844
+    Dedicated logic registers : 118
+Total registers : 118
+Total pins : 43
+Total virtual pins : 0
+Total memory bits : 256
+Embedded Multiplier 9-bit elements : 0
+Total PLLs : 1
+UFM blocks : 0
+ADC blocks : 0

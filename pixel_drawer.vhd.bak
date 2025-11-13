@@ -1,0 +1,80 @@
+LIBRARY ieee;
+USE ieee.std_logic_1164.all;
+USE ieee.numeric_std.all;
+
+ENTITY pixel_drawer IS
+    PORT (
+        i_pixel_x   : IN  STD_LOGIC_VECTOR(9 DOWNTO 0); -- De VGA_drvr
+        i_pixel_y   : IN  STD_LOGIC_VECTOR(9 DOWNTO 0); -- De VGA_drvr
+        i_bird_y    : IN  STD_LOGIC_VECTOR(9 DOWNTO 0); -- De bird_logic
+        i_pipe_x    : IN  STD_LOGIC_VECTOR(9 DOWNTO 0); -- De pipe_logic
+        i_pipe_gap_y : IN  STD_LOGIC_VECTOR(9 DOWNTO 0); -- De pipe_logic
+
+        o_red       : OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
+        o_green     : OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
+        o_blue      : OUT STD_LOGIC_VECTOR(3 DOWNTO 0)
+    );
+END pixel_drawer;
+
+ARCHITECTURE rtl OF pixel_drawer IS
+    -- Cores (RRRR GGGG BBBB)
+    CONSTANT BIRD_COLOR_R : STD_LOGIC_VECTOR(3 DOWNTO 0) := "1111"; -- Amarelo
+    CONSTANT BIRD_COLOR_G : STD_LOGIC_VECTOR(3 DOWNTO 0) := "1100";
+    CONSTANT BIRD_COLOR_B : STD_LOGIC_VECTOR(3 DOWNTO 0) := "0000";
+
+    CONSTANT PIPE_COLOR_R : STD_LOGIC_VECTOR(3 DOWNTO 0) := "0010"; -- Verde
+    CONSTANT PIPE_COLOR_G : STD_LOGIC_VECTOR(3 DOWNTO 0) := "1110";
+    CONSTANT PIPE_COLOR_B : STD_LOGIC_VECTOR(3 DOWNTO 0) := "0010";
+
+    CONSTANT BG_COLOR_R   : STD_LOGIC_VECTOR(3 DOWNTO 0) := "0100"; -- Azul Claro
+    CONSTANT BG_COLOR_G   : STD_LOGIC_VECTOR(3 DOWNTO 0) := "1000";
+    CONSTANT BG_COLOR_B   : STD_LOGIC_VECTOR(3 DOWNTO 0) := "1111";
+
+    -- Posição X fixa e tamanho do pássaro
+    CONSTANT BIRD_X_POS   : INTEGER := 100;
+    CONSTANT BIRD_SIZE    : INTEGER := 20; -- Quadrado 20x20
+
+    -- Dimensões do cano
+    CONSTANT PIPE_WIDTH   : INTEGER := 60;
+    CONSTANT GAP_HEIGHT   : INTEGER := 120;
+
+    -- Converte entradas para inteiros
+    SIGNAL x, y, bird_y_int, pipe_x_int, pipe_gap_int : INTEGER;
+
+BEGIN
+    x <= to_integer(unsigned(i_pixel_x));
+    y <= to_integer(unsigned(i_pixel_y));
+    bird_y_int <= to_integer(unsigned(i_bird_y));
+    pipe_x_int <= to_integer(unsigned(i_pipe_x));
+    pipe_gap_int <= to_integer(unsigned(i_pipe_gap_y));
+
+    -- Lógica de desenho (combinacional)
+    PROCESS (x, y, bird_y_int, pipe_x_int, pipe_gap_int)
+        -- Variáveis para "flags" de desenho
+        VARIABLE is_bird : BOOLEAN;
+        VARIABLE is_pipe : BOOLEAN;
+    BEGIN
+        -- Estamos no pássaro?
+        is_bird := (x >= BIRD_X_POS AND x < (BIRD_X_POS + BIRD_SIZE) AND
+                    y >= bird_y_int AND y < (bird_y_int + BIRD_SIZE));
+
+        -- Estamos no cano?
+        is_pipe := (x >= pipe_x_int AND x < (pipe_x_int + PIPE_WIDTH) AND
+                   (y < (pipe_gap_int - GAP_HEIGHT/2) OR y > (pipe_gap_int + GAP_HEIGHT/2)));
+
+        -- Define a cor de saída
+        IF (is_bird) THEN
+            o_red <= BIRD_COLOR_R;
+            o_green <= BIRD_COLOR_G;
+            o_blue <= BIRD_COLOR_B;
+        ELSIF (is_pipe) THEN
+            o_red <= PIPE_COLOR_R;
+            o_green <= PIPE_COLOR_G;
+            o_blue <= PIPE_COLOR_B;
+        ELSE
+            o_red <= BG_COLOR_R;
+            o_green <= BG_COLOR_G;
+            o_blue <= BG_COLOR_B;
+        END IF;
+    END PROCESS;
+END rtl;

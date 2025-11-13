@@ -1,0 +1,38 @@
+LIBRARY ieee;
+USE ieee.std_logic_1164.all;
+USE ieee.numeric_std.all;
+
+ENTITY bird_logic IS
+    PORT (
+        i_game_clk  : IN  STD_LOGIC; -- Clock de jogo (ex: 60Hz)
+        i_reset     : IN  STD_LOGIC;
+        i_flap      : IN  STD_LOGIC; -- Sinal de "pulo" (botão)
+        o_bird_y    : OUT STD_LOGIC_VECTOR(9 DOWNTO 0) -- Posição Y do pássaro
+    );
+END bird_logic;
+
+ARCHITECTURE rtl OF bird_logic IS
+    SIGNAL bird_y_pos : INTEGER RANGE 0 TO 479 := 240;
+    -- Constantes para física (ajuste os valores)
+    CONSTANT GRAVITY_AMOUNT : INTEGER := 1;
+    CONSTANT FLAP_AMOUNT    : INTEGER := 25;
+BEGIN
+    PROCESS (i_game_clk, i_reset)
+    BEGIN
+        IF (i_reset = '1') THEN
+            bird_y_pos <= 240; -- Posição inicial
+        ELSIF (rising_edge(i_game_clk)) THEN
+            IF (i_flap = '1') THEN
+                bird_y_pos <= bird_y_pos - FLAP_AMOUNT; -- Pula
+            ELSE
+                bird_y_pos <= bird_y_pos + GRAVITY_AMOUNT; -- Cai
+            END IF;
+
+            -- Limites de tela
+            IF (bird_y_pos < 10) THEN bird_y_pos <= 10; END IF;
+            IF (bird_y_pos > 470) THEN bird_y_pos <= 470; END IF;
+        END IF;
+    END PROCESS;
+
+    o_bird_y <= std_logic_vector(to_unsigned(bird_y_pos, 10));
+END rtl;

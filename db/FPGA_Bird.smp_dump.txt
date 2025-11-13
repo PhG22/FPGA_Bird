@@ -1,0 +1,6 @@
+
+State Machine - |FPGA_Bird|game_manager:inst12|current_state
+Name current_state.s_game_over current_state.s_playing current_state.s_ready 
+current_state.s_ready 0 0 0 
+current_state.s_playing 0 1 1 
+current_state.s_game_over 1 0 1 
