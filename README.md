@@ -37,7 +37,7 @@ Um port simples do jogo "Flappy Bird" implementado inteiramente em VHDL para a p
 
 ## 🎮 Como Jogar
 
-* **Reset:** Mova a chave `SW[0]' para baixo e para cima para (re)iniciar o jogo. O jogo começará na tela inicial.
+* **Reset:** Mova a chave `SW[0]` para baixo e para cima para (re)iniciar o jogo. O jogo começará na tela inicial.
 * **Iniciar / Pular (Flap):** Pressione o botão `KEY[0]` para pular. O primeiro "flap" inicia o jogo.
 * **Objetivo:** Evite os canos! O placar aumenta em 1 a cada cano ultrapassado com sucesso.
 
