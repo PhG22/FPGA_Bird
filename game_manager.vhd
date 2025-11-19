@@ -1,3 +1,41 @@
+--------------------
+--
+-- game_manager.vhd
+-- Criado em: 11/11/25
+-- Autor: Pedro Henrique Guimarães Gomes
+--
+-- Rev 1 - Documentação - 18/11/25
+--
+--------------------
+--  Resumo
+--
+-- Gerenciador central de estados, colisões e pontuação do jogo.
+--
+-- Controla a transição entre os estados (Tela Inicial, Jogando, Game Over),
+-- detecta colisões entre o pássaro e os obstáculos/chão, gerencia o placar
+-- e controla os LEDs e displays 7-segmentos da placa.
+-- 
+--------------------------
+--- Detalhes 
+--
+-- Entradas:
+--      i_clk: Clock do sistema (25 MHz).
+--      i_reset: Reseta a máquina de estados, o placar e as flags de controle. 
+--      i_flap: Botão de interação (inicia o jogo).
+--      i_game_tick: Pulso de física.
+--      i_bird_y, i_pipe_x, i_pipe_gap_y: Coordenadas dos objetos para cálculo de colisão.
+--
+-- Saídas:
+--      o_game_enable, o_game_over, o_game_ready: Flags de estado para outros módulos.
+--      o_led_out: Controle dos LEDs (pisca em Game Over).
+--      o_score_tens, o_score_ones: Placar em BCD para display 7-segmentos.
+--      o_score: Placar em binário para controle de dificuldade.
+--
+-- Funcionamento:
+--      Implementa uma máquina de estados com 3 estados. A colisão é calculada via sobreposição de
+--      retângulos. A pontuação incrementa ao ultrapassar coordenadas X do cano.
+--
+--------------------------
 LIBRARY ieee;
 USE ieee.std_logic_1164.all;
 USE ieee.numeric_std.all;
@@ -62,10 +100,12 @@ ARCHITECTURE rtl OF game_manager IS
 BEGIN
 
     -- --- Lógica de "Hitbox" ---
+    -- conversões
     bird_y_start <= to_integer(unsigned(i_bird_y));
     pipe_x_start <= to_integer(unsigned(i_pipe_x));
     pipe_gap_top <= to_integer(unsigned(i_pipe_gap_y)) - (C_GAP_HEIGHT / 2);
     
+    -- define os limites da hitbox
     bird_x_start <= C_BIRD_X_POS;
     bird_x_end   <= C_BIRD_X_POS + C_BIRD_SIZE;
     bird_y_end   <= bird_y_start + C_BIRD_SIZE;
@@ -74,16 +114,17 @@ BEGIN
     
     PROCESS(bird_x_start, bird_x_end, bird_y_start, bird_y_end,
             pipe_x_start, pipe_x_end, pipe_gap_top, pipe_gap_bottom)
-            
+        
+        -- variáveis para detecção de colisão
         VARIABLE v_x_overlap : BOOLEAN;
         VARIABLE v_y_overlap : BOOLEAN;
         VARIABLE v_hit_pipe  : BOOLEAN;
         VARIABLE v_hit_ground: BOOLEAN;
     BEGIN
-        v_x_overlap := (bird_x_end > pipe_x_start) AND (bird_x_start < pipe_x_end);
-        v_y_overlap := (bird_y_start < pipe_gap_top) OR (bird_y_end > pipe_gap_bottom);
-        v_hit_pipe := v_x_overlap AND v_y_overlap;
-        v_hit_ground := (bird_y_end >= C_GROUND_Y);
+        v_x_overlap := (bird_x_end > pipe_x_start) AND (bird_x_start < pipe_x_end); -- verifica sobreposições no eixo X
+        v_y_overlap := (bird_y_start < pipe_gap_top) OR (bird_y_end > pipe_gap_bottom); -- Verifica sobreposições no eixo Y
+        v_hit_pipe := v_x_overlap AND v_y_overlap; -- se houve sobreposição em ambos os eixos, houve uma colisão
+        v_hit_ground := (bird_y_end >= C_GROUND_Y); -- verifica se o pássaro encostou no chão
         
         IF (v_hit_pipe OR v_hit_ground) THEN
             s_collision_flag <= '1';
@@ -97,7 +138,7 @@ BEGIN
     
     PROCESS(i_clk, i_reset)
     BEGIN
-        IF (i_reset = '1') THEN
+        IF (i_reset = '1') THEN -- Reseta para o estado inicial
             current_state   <= s_ready;
             r_blink_counter <= 0;
             r_blink_toggle  <= '0';
@@ -107,11 +148,11 @@ BEGIN
         ELSIF (rising_edge(i_clk)) THEN
         
             -- Lógica de Blink
-            IF (r_blink_counter = C_BLINK_MAX_COUNT) THEN
+            IF (r_blink_counter = C_BLINK_MAX_COUNT) THEN -- Reseta o contador e da um toggle na variável que controla o blink dos LEDs
                 r_blink_counter <= 0;
                 r_blink_toggle  <= NOT r_blink_toggle;
             ELSE
-                r_blink_counter <= r_blink_counter + 1;
+                r_blink_counter <= r_blink_counter + 1; -- Incrementa o contador
             END IF;
 
             -- Lógica da Estados
@@ -126,18 +167,18 @@ BEGIN
                 WHEN s_playing =>
                     -- Lógica de pontuação
                     IF (i_game_tick = '1') THEN 
-                        IF (s_pipe_x_current < C_BIRD_X_POS AND r_pipe_passed = '0') THEN
-                            IF (r_score < 99) THEN
-                                r_score <= r_score + 1;
-                            END IF;
+                        IF (s_pipe_x_current < C_BIRD_X_POS AND r_pipe_passed = '0') THEN -- Quando o cano chega na mesma posição X do pássaro incrementa o score e muda a flag de passagem
+                            IF (r_score < 99) THEN                                        -- a flag impede de computar multiplos pontos pra mesma passagem
+                                r_score <= r_score + 1;                                  
+                            END IF;                                                      
                             r_pipe_passed <= '1';
-                        ELSIF (s_pipe_x_current > (C_BIRD_X_POS + C_BIRD_SIZE)) THEN
+                        ELSIF (s_pipe_x_current > (C_BIRD_X_POS + C_BIRD_SIZE)) THEN -- Quando a passagem pelo cano se encerra, reseta a flag de passagem
                             r_pipe_passed <= '0';
                         END IF;
                     END IF;
                 
                     -- Lógica de Game Over
-                    IF (s_collision_flag = '1') THEN
+                    IF (s_collision_flag = '1') THEN -- quando colide, entra em game over
                         current_state <= s_game_over;
                     END IF;
                     

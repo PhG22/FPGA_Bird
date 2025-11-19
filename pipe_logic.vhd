@@ -1,3 +1,45 @@
+--------------------
+--
+-- pipe_logic.vhd
+-- Criado em: 11/11/25
+-- Autor: Pedro Henrique Guimarães Gomes
+--
+-- Rev 1 - Documentação - 18/11/25
+--
+--------------------
+--  Resumo
+--
+-- Controlador lógico dos obstáculos do jogo.
+--
+-- Este módulo gerencia a posição horizontal (eixo X) e a altura da abertura (eixo Y) dos canos.
+-- Ele reinicia a posição do cano quando este sai da tela, gera uma nova altura de 
+-- abertura aleatória via LFSR e aumenta a velocidade de movimento baseada no placar atual.
+-- 
+--------------------------
+--- Detalhes 
+--
+-- Entradas:
+--      i_clk: Clock do sistema (25 MHz).
+--      i_reset: Reinicia a posição e velocidade dos canos.
+--      i_game_tick: Pulso de 60Hz para sincronização do movimento.
+--      i_score: Vetor de 7 bits indicando a pontuação atual para ajuste de dificuldade.
+--
+-- Saídas:
+--      o_pipe_x: Posição horizontal atual do cano (10 bits).
+--      o_pipe_gap_y: Posição vertical do centro da abertura do cano (10 bits).
+--
+-- Funcionamento:
+--      Utiliza um registrador de deslocamento com retroalimentação linear (LFSR) para
+--      gerar números pseudo-aleatórios para a altura dos canos. A velocidade de 
+--      deslocamento varia de 3 a 10 pixels/tick dependendo do 'i_score'.
+--
+--------------------------
+-- Observações
+--
+--      A lógica de LFSR para gerar números pseudo-aleatórios foi sugerida por IA.
+--      todo o resto deste módulo foi feito pelo autor deste sem o auxílio de IA.
+--
+--------------------------
 LIBRARY ieee;
 USE ieee.std_logic_1164.all;
 USE ieee.numeric_std.all;
@@ -25,12 +67,12 @@ ARCHITECTURE rtl OF pipe_logic IS
     SIGNAL r_pipe_x_pos   : INTEGER RANGE C_PIPE_END_X TO C_PIPE_START_X := C_PIPE_START_X;
     SIGNAL r_pipe_gap_pos : INTEGER RANGE C_GAP_Y_MIN TO C_GAP_Y_MAX := 240;
     
-    -- Gerador de números pseudo-aleatórios (LFSR)
+    -- Gerador de números pseudo-aleatórios (LFSR) -- SUGERIDO POR IA
     SIGNAL r_lfsr         : STD_LOGIC_VECTOR(7 DOWNTO 0) := "10101010";
 
     -- Sinais para velocidade dinâmica
     SIGNAL s_current_pipe_speed : INTEGER RANGE 3 TO 10; -- Max velocidade = 10
-    SIGNAL s_score_int          : INTEGER RANGE 0 TO 99;
+    SIGNAL s_score_int          : INTEGER RANGE 0 TO 99; -- Max Score - 99
 
 BEGIN
 
@@ -67,9 +109,9 @@ BEGIN
             r_pipe_gap_pos <= 240;
             r_lfsr         <= "10101010";
             
-        ELSIF (rising_edge(i_clk)) THEN
-            -- A lógica do cano só roda no tick do jogo
-            IF (i_game_tick = '1') THEN
+        ELSIF (rising_edge(i_clk)) THEN 
+
+            IF (i_game_tick = '1') THEN -- A lógica do cano só roda no tick do jogo
             
                 -- O cano saiu da tela?
                 IF (r_pipe_x_pos < C_PIPE_END_X) THEN
@@ -77,10 +119,10 @@ BEGIN
                     r_pipe_x_pos <= C_PIPE_START_X;
                     
                     -- Calcula uma nova altura "aleatória" para a abertura
-                    r_lfsr <= (r_lfsr(6 DOWNTO 0) & (r_lfsr(7) XOR r_lfsr(5) XOR r_lfsr(4) XOR r_lfsr(3)));
-                    v_new_gap_y := C_GAP_Y_MIN + to_integer(unsigned(r_lfsr));
+                    r_lfsr <= (r_lfsr(6 DOWNTO 0) & (r_lfsr(7) XOR r_lfsr(5) XOR r_lfsr(4) XOR r_lfsr(3))); -- Método de cálculo pseudo-aleatório sugerido por IA
+                    v_new_gap_y := C_GAP_Y_MIN + to_integer(unsigned(r_lfsr)); 
                     
-                    IF (v_new_gap_y > C_GAP_Y_MAX) THEN
+                    IF (v_new_gap_y > C_GAP_Y_MAX) THEN -- Satura a altura máxima do gap
                         r_pipe_gap_pos <= C_GAP_Y_MAX;
                     ELSE
                         r_pipe_gap_pos <= v_new_gap_y;

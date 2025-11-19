@@ -1,17 +1,17 @@
-Fitter Status : Successful - Thu Nov 13 17:20:36 2025
+Fitter Status : Successful - Tue Nov 18 17:42:41 2025
 Quartus Prime Version : 18.1.0 Build 625 09/12/2018 SJ Lite Edition
 Revision Name : FPGA_Bird
 Top-level Entity Name : FPGA_Bird
 Family : MAX 10
 Device : 10M50DAF484C7G
 Timing Models : Final
-Total logic elements : 846 / 49,760 ( 2 % )
-    Total combinational functions : 845 / 49,760 ( 2 % )
-    Dedicated logic registers : 118 / 49,760 ( < 1 % )
-Total registers : 118
+Total logic elements : 2,143 / 49,760 ( 4 % )
+    Total combinational functions : 1,547 / 49,760 ( 3 % )
+    Dedicated logic registers : 1,220 / 49,760 ( 2 % )
+Total registers : 1220
 Total pins : 43 / 360 ( 12 % )
 Total virtual pins : 0
-Total memory bits : 256 / 1,677,312 ( < 1 % )
+Total memory bits : 250,112 / 1,677,312 ( 15 % )
 Embedded Multiplier 9-bit elements : 0 / 288 ( 0 % )
 Total PLLs : 1 / 4 ( 25 % )
 UFM blocks : 0 / 1 ( 0 % )

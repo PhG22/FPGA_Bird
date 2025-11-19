@@ -1,3 +1,44 @@
+--------------------
+--
+-- pixel_drawer.vhd
+-- Criado em: 11/11/25
+-- Autor: Pedro Henrique Guimarães Gomes
+--
+-- Rev 1 - Documentação - 18/11/25
+--
+--------------------
+--  Resumo
+--
+-- Gerador de pixels (Renderizador) para a saída VGA.
+--
+-- Módulo que determina a cor RGB (4 bits por canal) do pixel atual
+-- com base nas coordenadas de varredura e na posição dos objetos do jogo.
+-- 
+--------------------------
+--- Detalhes 
+--
+-- Entradas:
+--      i_pixel_x, i_pixel_y: Coordenadas atuais da varredura VGA.
+--      i_bird_y, i_pipe_x, i_pipe_gap_y: Posições dos objetos a serem desenhados.
+--      i_game_over, i_game_ready: Flags para decidir qual texto desenhar na tela.
+--
+-- Saídas:
+--      o_red, o_green, o_blue: Canais de cor (4 bits cada) para a saída VGA.
+--
+-- Funcionamento:
+--      Utiliza lógica de prioridade (Multiplexador) para desenhar camadas:
+--      1. Texto ("FPGA BIRD" ou "GAME OVER") - Alta Prioridade
+--      2. Pássaro
+--      3. Canos
+--      4. Fundo (Azul) - Baixa Prioridade
+--
+--------------------------
+-- Observações
+--
+--      Foi usado o auxílio de IA para encontrar as melhores coordenadas para se imprimir
+--      os textos na tela. A lógica e o restante do código foi implementado inteiramente pelo autor.
+--
+--------------------------
 LIBRARY ieee;
 USE ieee.std_logic_1164.all;
 USE ieee.numeric_std.all;
@@ -55,7 +96,7 @@ ARCHITECTURE rtl OF pixel_drawer IS
     SIGNAL s_pipe_gap_int : INTEGER RANGE 0 TO 479;
     
 BEGIN
-
+    -- Conversões
     s_x <= to_integer(unsigned(i_pixel_x));
     s_y <= to_integer(unsigned(i_pixel_y));
     s_bird_y_int <= to_integer(unsigned(i_bird_y));
@@ -63,7 +104,8 @@ BEGIN
     s_pipe_gap_int <= to_integer(unsigned(i_pipe_gap_y));
 
     PROCESS (s_x, s_y, s_bird_y_int, s_pipe_x_int, s_pipe_gap_int, i_game_over, i_game_ready)
-    
+
+    --  Váriaveis para definir a que componente do jogo o pixel atual pertence
         VARIABLE v_is_bird : BOOLEAN;
         VARIABLE v_is_pipe : BOOLEAN;
         VARIABLE v_is_text : BOOLEAN;
@@ -71,15 +113,15 @@ BEGIN
     BEGIN 
             
         v_is_bird := (s_x >= C_BIRD_X_POS AND s_x < (C_BIRD_X_POS + C_BIRD_SIZE) AND
-                      s_y >= s_bird_y_int AND s_y < (s_bird_y_int + C_BIRD_SIZE));
+                      s_y >= s_bird_y_int AND s_y < (s_bird_y_int + C_BIRD_SIZE)); -- Verifica se o pixel atual faz parte do pássaro
     
         v_is_pipe := (s_x >= s_pipe_x_int AND s_x < (s_pipe_x_int + C_PIPE_WIDTH) AND
                      (s_y < (s_pipe_gap_int - C_GAP_HEIGHT/2) OR 
-                      s_y > (s_pipe_gap_int + C_GAP_HEIGHT/2)));
+                      s_y > (s_pipe_gap_int + C_GAP_HEIGHT/2))); -- verifica se o pixel atual faz parte de um cano
                       
         -- Lógica de Texto (baseada no estado do jogo)
-        
-        IF (i_game_ready = '1') THEN
+        -- O posicionamento (coordenadas) dos textos foram feitas com o auxilio de IA para melhor ajuste do posicionamento na tela
+        IF (i_game_ready = '1') THEN -- Jogo pronto mas não iniciado
             -- --- TELA DE INÍCIO ---
             IF (s_y >= 150 AND s_y < 180) AND (s_x >= 260 AND s_x < 280) THEN -- F
                 v_is_text := (s_x < 264 OR s_y < 154 OR (s_y > 163 AND s_y < 167));
@@ -132,11 +174,11 @@ BEGIN
             ELSIF (s_y >= 350 AND s_y < 365) AND (s_x >= 430 AND s_x < 440) THEN -- T
                 v_is_text := (s_x < 438 AND s_x > 432) OR (s_y < 352);
             
-            ELSE
+            ELSE -- Se falhar em todas as outras verificações, o pixel não é texto
                 v_is_text := false;
             END IF;
 
-        ELSIF (i_game_over = '1') THEN
+        ELSIF (i_game_over = '1') THEN -- Pássaro colidiu com um cano ou o chão
             -- --- TELA DE FIM DE JOGO ---
             IF (s_y >= 220 AND s_y < 250) AND (s_x >= 260 AND s_x < 280) THEN
                 v_is_text := (s_x < 264 OR s_y < 224 OR s_y > 246 OR (s_y > 233 AND s_x > 270)); -- "G"
@@ -164,7 +206,7 @@ BEGIN
                 v_is_text := (s_x < 369) OR (s_y < 264) OR (s_y > 273 AND s_y < 277) OR 
                              (s_x > 381 AND s_y < 275) OR (s_y >= 275 AND s_x >= 377); -- "R"
             
-            ELSE
+            ELSE -- Se falhar em todas as outras verificações, o pixel não é texto
                 v_is_text := false;
             END IF;
             

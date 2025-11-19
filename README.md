@@ -2,10 +2,10 @@
 
 Um port simples do jogo "Flappy Bird" implementado inteiramente em VHDL para a placa FPGA **DE10-Lite (MAX10)**, feito como projeto final para a disciplina de Lógica Reconfigurável (ELTE3) do curso de Engenharia de Computação da UTFPR. O projeto utiliza uma renderização VGA 640x480 em tempo real, lógica de estado, detecção de colisão e placar em displays 7-segmentos.
 
-![Imagem do Jogo](FPGA_Bird.jpg)
+![Imagem do Jogo](misc/FPGA_Bird.jpg)
 *Start Screen*
 
-![Gif do Jogo](FPGA_Bird.gif)
+![Gif do Jogo](misc/FPGA_Bird.gif)
 *Gameplay*
 
 ---
